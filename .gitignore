@@ -1,0 +1,26 @@
+# --- environments / caches
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.claude/
+
+# --- third-party material we do NOT redistribute (clone them yourself, see README)
+Agenthon2026-public/
+track2-forecasting-public/
+
+# --- submission artefacts (contain team proof / digests; regenerate locally)
+submission/*.zip
+submission/submission.json
+submission/*.log
+
+# --- data derived from third-party text excerpts, and private mappings
+t2work/blind/
+t2work/*_PRIVATE*
+t2work/*.log
+
+# --- never commit secrets
+*.key
+*.pem
+.env
+*team_key*
