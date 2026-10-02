@@ -85,3 +85,11 @@ no model). On public-history pseudo-cards one extra month is worth **~13 % of th
 in the practice set 2/104 cards have a fresher release (CPI glidepath 2023, Sahm watch 2024) -> overall effect ~0.3 %.
 Validation: `submission/tests/validate_releases.py` (54/60 BLS documents parse; core CPI 34/34, CPI 36/37, payrolls 11/11,
 unemployment 11/12 within tolerance vs the public panel), unit tests in `submission/tests/`. Image `v8`.
+
+## House-model fallback for number extraction (2026-10-02, image v9)
+`t2agent/llm_extract.py` + `t2agent/house.py`: for monthly macro cards whose corpus has a release newer than the lagging panel
+that the regexes cannot read (other country / publisher / layout), ONE narrow request asks the House model for the published
+number plus the verbatim sentence; code verifies quote, number, month and plausibility before use; any failure = no change.
+The model never forecasts. Stand-in evaluation (146 prompts): accepted answers 84/84 correct, 0/54 negative controls accepted,
+4/4 synthetic foreign-format releases read. **Still to do: run `t2work/run_llm_extract_live.py` against the real Nemotron
+(build.nvidia) and score it.** Descriptor must then declare the House model: `python make_descriptor.py --house ...`.

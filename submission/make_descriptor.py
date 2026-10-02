@@ -11,13 +11,14 @@ ap.add_argument("--team-id", required=True)
 ap.add_argument("--repo", default="mask123123/t2-forecaster")
 ap.add_argument("--registry", default="ghcr.io")
 ap.add_argument("--out", default="submission.json")
+ap.add_argument("--house", action="store_true", help="declare the House model (image may call it for verified number extraction)")
 a = ap.parse_args()
 d = {
     "schema_version": "1.1.0", "interface_version": "2.0",
     "competition_id": "agenthon2026-forecasting-dev", "team_id": a.team_id,
     "track": "forecasting", "phase": "dev", "category": "api",
     "image": {"registry": a.registry, "repository": a.repo, "digest": a.digest},
-    "image_access": "public", "models": [], "license": "MIT",
+    "image_access": "public", "models": ([{"name": "nvidia/nemotron-3-super-120b-a12b", "version": "rl-030326-fp8", "revision": "rl-030326-fp8", "training_cutoff": "unpublished", "access": "api"}] if a.house else []), "license": "MIT",
     "descriptor_digest": "sha256:" + "0" * 64,
 }
 d = seal_descriptor_digest(d)

@@ -155,28 +155,47 @@ def fresh_prints(hist: pd.Series, asset: str, releases: list[dict]) -> list[tupl
     return out
 
 
-def apply_fresh(hist: dict, panel_steps, assets: list[str], text_dir, asof: str):
-    """-> (hist, panel_steps, ledger). Appends fresh prints and shortens each asset's step count by the months gained."""
+def apply_fresh(hist: dict, panel_steps, assets: list[str], text_dir, asof: str, house=None, use_llm: bool = True):
+    """-> (hist, panel_steps, ledger). Appends fresh prints and shortens each asset's step count by the months gained.
+
+    Regular expressions first (BLS layouts); for assets they could not read, and only if the corpus holds a macro release newer
+    than the panel, the House model is asked to quote the published number and the answer is verified (llm_extract.verify)."""
     ledger: list[str] = []
     if panel_steps is None:
         return hist, panel_steps, ledger
     try:
-        rel = _releases(pathlib.Path(text_dir), asof)
-        if not rel:
-            return hist, panel_steps, ledger
+        text_dir = pathlib.Path(text_dir)
+        rel = _releases(text_dir, asof)
         ps = np.array(panel_steps, dtype=float).copy()
         new_hist = dict(hist)
+        changed = False
+        h = house
         for ai, a in enumerate(assets):
-            fp = fresh_prints(hist.get(a), a, rel)
+            fp = [(m, v, "") for m, v in fresh_prints(hist.get(a), a, rel)]
+            how = "regex"
+            if not fp and use_llm and hist.get(a) is not None and len(hist[a]) >= 24:
+                try:
+                    from . import llm_extract as LX
+                    from .house import House
+                    docs = LX.candidate_docs(text_dir, asof, str(hist[a].index[-1])[:7])
+                    if docs:
+                        h = h or House()
+                        if h.available:
+                            fp = LX.extract(h, hist[a], a, docs)
+                            how = "House model, verified against the text"
+                except Exception:
+                    fp = []
             if not fp:
                 continue
             s = hist[a].copy()
-            for month, val in fp:
+            for month, val, _q in fp:
                 s.loc[month] = val
             new_hist[a] = s
             ps[ai, :] = np.maximum(ps[ai, :] - len(fp), 1.0)
-            ledger.append(f"  {a}: latest BLS release value(s) not yet in the panel: "
-                          + ", ".join(f"{m[:7]}={v:.4g}" for m, v in fp) + f" -> anchor moved, steps reduced by {len(fp)}")
-        return new_hist, ps, ledger
+            changed = True
+            quote = f" quote: \"{fp[0][2]}\"" if fp[0][2] else ""
+            ledger.append(f"  {a}: latest release value(s) not yet in the panel ({how}): "
+                          + ", ".join(f"{m[:7]}={v:.4g}" for m, v, _q in fp) + f" -> anchor moved, steps reduced by {len(fp)}.{quote}")
+        return (new_hist, ps, ledger) if changed else (hist, panel_steps, ledger)
     except Exception as exc:                            # never let this cost a card
         return hist, panel_steps, [f"  release reader error ({type(exc).__name__}); not applied"]

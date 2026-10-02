@@ -1,0 +1,102 @@
+[
+ {
+  "id": "N019",
+  "answer": "{\"found\": false}"
+ },
+ {
+  "id": "N136",
+  "answer": "{\"found\": false}"
+ },
+ {
+  "id": "P000",
+  "answer": "{\"found\": true, \"month\": \"2016-09\", \"kind\": \"level\", \"value\": 5.0, \"quote\": \"Total nonfarm payroll employment increased by 156,000 in September, and the unemployment rate was little changed at 5.0 percent, the U.S. Bureau of Labor Statistics reported today.\"}"
+ },
+ {
+  "id": "P102",
+  "answer": "{\"found\": true, \"month\": \"2021-11\", \"kind\": \"pct_change\", \"value\": 0.5, \"quote\": \"The index for all items less food and energy rose 0.5 percent in November following a 0.6-percent increase in October.\"}"
+ },
+ {
+  "id": "N127",
+  "answer": "{\"found\": false}"
+ },
+ {
+  "id": "P128",
+  "answer": "{\"found\": true, \"month\": \"2008-12\", \"kind\": \"level\", \"value\": 210.228, \"quote\": \"The December level of 210.228 (1982-84=100) was 0.1 percent higher than in December 2007.\"}"
+ },
+ {
+  "id": "P067",
+  "answer": "{\"found\": true, \"month\": \"2018-12\", \"kind\": \"pct_change\", \"value\": -0.1, \"quote\": \"The Consumer Price Index for All Urban Consumers (CPI-U) declined 0.1 percent in December on a seasonally adjusted basis after being unchanged in November, the U.S. Bureau of Labor Statistics reported today.\"}"
+ },
+ {
+  "id": "P075",
+  "answer": "{\"found\": true, \"month\": \"2022-05\", \"kind\": \"pct_change\", \"value\": 1.0, \"quote\": \"The Consumer Price Index for All Urban Consumers (CPI-U) increased 1.0 percent in May on a seasonally adjusted basis after rising 0.3 percent in April, the U.S. Bureau of Labor Statistics reported today.\"}"
+ },
+ {
+  "id": "P031",
+  "answer": "{\"found\": true, \"month\": \"2023-12\", \"kind\": \"pct_change\", \"value\": 0.3, \"quote\": \"The index for all items less food and energy rose 0.3 percent in December, the same monthly increase as in November.\"}"
+ },
+ {
+  "id": "P007",
+  "answer": "{\"found\": true, \"month\": \"2024-05\", \"kind\": \"pct_change\", \"value\": 0.2, \"quote\": \"The index for all items less food and energy rose 0.2 percent in May, after rising 0.3 percent the preceding month.\"}"
+ },
+ {
+  "id": "P044",
+  "answer": "{\"found\": true, \"month\": \"2014-09\", \"kind\": \"pct_change\", \"value\": 0.1, \"quote\": \"The Consumer Price Index for All Urban Consumers (CPI-U) increased 0.1 percent in September on a seasonally adjusted basis, the U.S. Bureau of Labor Statistics reported today.\"}"
+ },
+ {
+  "id": "P126",
+  "answer": "{\"found\": true, \"month\": \"2018-10\", \"kind\": \"pct_change\", \"value\": 0.2, \"quote\": \"The index for all items less food and energy rose 0.2 percent in October following a 0.1-percent increase in September.\"}"
+ },
+ {
+  "id": "P088",
+  "answer": "{\"found\": true, \"month\": \"2014-11\", \"kind\": \"pct_change\", \"value\": 0.1, \"quote\": \"The index for all items less food and energy increased 0.1 percent in November.\"}"
+ },
+ {
+  "id": "N118",
+  "answer": "{\"found\": false}"
+ },
+ {
+  "id": "P080",
+  "answer": "{\"found\": true, \"month\": \"2020-01\", \"kind\": \"pct_change\", \"value\": 0.2, \"quote\": \"The index for all items less food and energy rose 0.2 percent in January after increasing 0.1 percent in December.\"}"
+ },
+ {
+  "id": "P133",
+  "answer": "{\"found\": true, \"month\": \"2017-12\", \"kind\": \"pct_change\", \"value\": 0.3, \"quote\": \"The index for all items less food and energy increased 0.3 percent in December, its largest increase since January 2017.\"}"
+ },
+ {
+  "id": "M116",
+  "answer": "{\"found\": false}"
+ },
+ {
+  "id": "P065",
+  "answer": "{\"found\": true, \"month\": \"2023-08\", \"kind\": \"pct_change\", \"value\": 0.3, \"quote\": \"The index for all items less food and energy rose 0.3 percent in August, following a 0.2-percent increase in July.\"}"
+ },
+ {
+  "id": "M066",
+  "answer": "{\"found\": false}"
+ },
+ {
+  "id": "M120",
+  "answer": "{\"found\": false}"
+ },
+ {
+  "id": "M109",
+  "answer": "{\"found\": false}"
+ },
+ {
+  "id": "N059",
+  "answer": "{\"found\": false}"
+ },
+ {
+  "id": "N056",
+  "answer": "{\"found\": false}"
+ },
+ {
+  "id": "P058",
+  "answer": "{\"found\": true, \"month\": \"2013-04\", \"kind\": \"level\", \"value\": 7.5, \"quote\": \"Total nonfarm payroll employment rose by 165,000 in April, and the unemployment rate was little changed at 7.5 percent, the U.S. Bureau of Labor Statistics reported today.\"}"
+ },
+ {
+  "id": "P085",
+  "answer": "{\"found\": true, \"month\": \"2014-08\", \"kind\": \"pct_change\", \"value\": 0.0, \"quote\": \"The index for all items less food and energy was unchanged in August; this was the first month since October 2010 that the index did not increase.\"}"
+ }
+]

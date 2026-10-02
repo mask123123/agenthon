@@ -4,9 +4,10 @@
 This image contains statistical code only. There are no fitted model files, no neural weights, no stored answers,
 no lookup tables and no external data. The few numeric constants below were chosen by walk-forward backtests on
 public panel history (rates / FX / factor panels from the public practice units, all dated 2000-2024), i.e. data that
-existed before any sealed-set as-of date. The House model is not called and no language model or NLP model is used
-(`models: []`). The unit's own text corpus is read for ONE purpose only: extracting published numbers from BLS releases
-with regular expressions (see "Text-derived numbers" below).
+existed before any sealed-set as-of date. No language-model weights, adapters or NLP models are packaged. The unit's own text corpus is read for ONE purpose only:
+extracting published numbers from macro releases (see "Text-derived numbers" below). That is done with regular expressions
+and, only where they cannot read a release newer than the lagging panel, with ONE narrow request to the organiser-hosted House
+model whose answer is verified in code before use. The descriptor therefore declares the House model (`models[]`, access api).
 
 ## Components
 | item | source / version | licence | role |
@@ -47,7 +48,19 @@ panel's last observation, the release's numbers are appended to the history: une
 (seasonally adjusted monthly % change applied to the panel's last seasonally adjusted level), payrolls (change plus the
 stated revisions of the two prior months). The engine then anchors on the newest value with one fewer step. A value is used
 only if the release month is exactly the next month, it parses cleanly and passes domain bounds; otherwise nothing changes.
-No judgement, tone or forecast is read from any text. Parser validation (tests/validate_releases.py): 54 of the 60 unique
+No judgement, tone or forecast is read from any text.
+
+House-model fallback (llm_extract.py, house.py): used only for monthly macro cards, only when a macro_release document is dated
+after the panel's last observation month and the regular expressions found nothing. One request per such asset (hard cap 4 per
+unit, 120 s deadline, circuit breaker; the unit allowance is 25), temperature 0, seed 0, thinking disabled, <=300 output tokens.
+The model must return a number plus the verbatim sentence it came from; code then checks that the sentence occurs in the text we
+sent, that the number occurs in it (sign consistent with up/down wording; "unchanged" = 0), that the month is exactly the
+month after the panel's last observation and is named in the text, and plausibility (monthly % change within 10 %; a stated
+level only for rate-like series, never unadjusted). Any failure, error or missing endpoint leaves the forecast exactly as
+without the call. The model never forecasts and no judgement of the model is used. Tests: tests/test_llm_extract.py (mocked),
+tests/test_cli_house_e2e.py (real HTTP against a local mock of the route, incl. fabricated / wrong / garbage / 500 answers);
+stand-in evaluation (t2work/eval_llm_extract.py): 146 prompts - BLS positives 84/84 accepted answers correct, 0/54 negative
+controls accepted, 4/4 synthetic foreign-format releases read correctly, 2/2 absent cases refused. Parser validation (tests/validate_releases.py): 54 of the 60 unique
 BLS documents in the public practice corpora parse; against the public monthly panel, core CPI 34/34, CPI 36/37, payrolls
 11/11 and unemployment 11/12 are within tolerance (differences are later data revisions). Backtest on public history: one
 extra month of macro data improves the score on such cards by ~13 % (20 % at two steps).

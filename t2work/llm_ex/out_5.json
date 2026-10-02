@@ -1,0 +1,23 @@
+[
+{"id":"P039","answer":"{\"found\": true, \"month\": \"2015-01\", \"kind\": \"pct_change\", \"value\": 0.2, \"quote\": \"The index for all items less food and energy rose 0.2 percent in January.\"}"},
+{"id":"N089","answer":"{\"found\": false}"},
+{"id":"P091","answer":"{\"found\": true, \"month\": \"2024-06\", \"kind\": \"pct_change\", \"value\": -0.1, \"quote\": \"The Consumer Price Index for All Urban Consumers (CPI-U) declined 0.1 percent on a seasonally adjusted basis, after being unchanged in May, the U.S. Bureau of Labor Statistics reported today.\"}"},
+{"id":"P121","answer":"{\"found\": true, \"month\": \"2009-02\", \"kind\": \"level\", \"value\": 8.1, \"quote\": \"The number of unemployed persons increased by 851,000 to 12.5 million in February, and the unemployment rate rose to 8.1 percent.\"}"},
+{"id":"P004","answer":"{\"found\": true, \"month\": \"2021-05\", \"kind\": \"pct_change\", \"value\": 0.7, \"quote\": \"The index for all items less food and energy rose 0.7 percent in May after increasing 0.9 percent in April.\"}"},
+{"id":"M008","answer":"{\"found\": false}"},
+{"id":"N134","answer":"{\"found\": false}"},
+{"id":"P084","answer":"{\"found\": true, \"month\": \"2014-08\", \"kind\": \"pct_change\", \"value\": -0.2, \"quote\": \"The Consumer Price Index for All Urban Consumers (CPI-U) decreased 0.2 percent in August on a seasonally adjusted basis, the U.S. Bureau of Labor Statistics reported today.\"}"},
+{"id":"P115","answer":"{\"found\": true, \"month\": \"2022-03\", \"kind\": \"pct_change\", \"value\": 0.3, \"quote\": \"The index for all items less food and energy rose 0.3 percent in March following a 0.5-percent increase the prior month.\"}"},
+{"id":"P035","answer":"{\"found\": true, \"month\": \"2015-09\", \"kind\": \"pct_change\", \"value\": -0.2, \"quote\": \"The Consumer Price Index for All Urban Consumers (CPI-U) decreased 0.2 percent in September on a seasonally adjusted basis, the U.S. Bureau of Labor Statistics reported today.\"}"},
+{"id":"P092","answer":"{\"found\": true, \"month\": \"2024-06\", \"kind\": \"pct_change\", \"value\": 0.1, \"quote\": \"The index for all items less food and energy rose 0.1 percent in June, after rising 0.2 percent the preceding month.\"}"},
+{"id":"N023","answer":"{\"found\": false}"},
+{"id":"P033","answer":"{\"found\": true, \"month\": \"2018-06\", \"kind\": \"pct_change\", \"value\": 0.2, \"quote\": \"The index for all items less food and energy rose 0.2 percent in June.\"}"},
+{"id":"P135","answer":"{\"found\": true, \"month\": \"2023-01\", \"kind\": \"pct_change\", \"value\": 0.5, \"quote\": \"The Consumer Price Index for All Urban Consumers (CPI-U) rose 0.5 percent in January on a seasonally adjusted basis, after increasing 0.1 percent in December, the U.S. Bureau of Labor Statistics reported today.\"}"},
+{"id":"P094","answer":"{\"found\": true, \"month\": \"2018-05\", \"kind\": \"pct_change\", \"value\": 0.2, \"quote\": \"The Consumer Price Index for All Urban Consumers (CPI-U) increased 0.2 percent in May on a seasonally adjusted basis after rising 0.2 percent in April, the U.S. Bureau of Labor Statistics reported today.\"}"},
+{"id":"N072","answer":"{\"found\": false}"},
+{"id":"P045","answer":"{\"found\": true, \"month\": \"2014-09\", \"kind\": \"pct_change\", \"value\": 0.1, \"quote\": \"The index for all items less food and energy increased 0.1 percent in September.\"}"},
+{"id":"P011","answer":"{\"found\": true, \"month\": \"2022-10\", \"kind\": \"pct_change\", \"value\": 0.3, \"quote\": \"The index for all items less food and energy rose 0.3 percent in October, after rising 0.6 percent in September.\"}"},
+{"id":"N015","answer":"{\"found\": false}"},
+{"id":"P063","answer":"{\"found\": true, \"month\": \"2023-08\", \"kind\": \"pct_change\", \"value\": 0.6, \"quote\": \"The Consumer Price Index for All Urban Consumers (CPI-U) rose 0.6 percent in August on a seasonally adjusted basis, after increasing 0.2 percent in July, the U.S. Bureau of Labor Statistics reported today.\"}"},
+{"id":"P114","answer":"{\"found\": true, \"month\": \"2022-03\", \"kind\": \"pct_change\", \"value\": 1.2, \"quote\": \"The Consumer Price Index for All Urban Consumers (CPI-U) increased 1.2 percent in March on a seasonally adjusted basis after rising 0.8 percent in February, the U.S. Bureau of Labor Statistics reported today.\"}"}
+]
