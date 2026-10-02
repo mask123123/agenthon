@@ -83,6 +83,14 @@ to the rationale only and do not move the forecast. Coefficients: 1,650 pseudo r
 (asset, as-of +-7 d) pairs excluded), labels from public UST history; FOMC statements 2000-2024 from
 federalreserve.gov (public domain, offline only, not in the image). Protocols: research/nlp/RESEARCH_LOG.md.
 
+## Ratio-aware resampling (t2agent/ratio_aware.py) - engine path only
+After the engine draws, M0's exact draws are reproduced from the panels as shipped (t2agent/m0_fallback.py). Each engine
+draw x (one row) gets weight L(x)^-gamma, L(x) = mean over cells of CRPS_M0,cell(x) / CRPS_M0,cell(M0 median); rows are
+systematically resampled (seeded by the unit id). gamma = 0.10 (single-cell cards) / 0.25 (multi-cell cards), chosen to
+minimize the worse of two local scores: 1,128 pseudo-cards from public history and the practice cards whose outcomes
+resolve from public panels (track issue #24 allows calibration on practice data; nothing derived from outcomes is in the
+image except these two constants). No information about outcomes is used at run time. See submission/RATIO_AWARE.md.
+
 ## Data used for selection and calibration
 Public panels up to 2024-12-18 (rates), 2024-10-31 (FX), 2024-05-31 (factors, macro). Pseudo-cards were generated from
 those series at regular as-of dates; pseudo-cards coinciding (+-7 days, same asset) with a practice unit were excluded

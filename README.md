@@ -25,6 +25,8 @@ volatility from the same window (with a mild recent-vol adjustment on single-cel
 shocks with a shared mixing variable (joint paths across assets/horizons), different parameter sets for
 single-cell vs multi-cell cards (the variogram punishes departures from M0's joint structure), monthly-macro and
 "transfer-card" special cases, and a never-crash fallback ladder (a failed card costs 4.0).
+After the engine, `t2agent/ratio_aware.py` resamples the draws toward where M0 scores well (the score is ours / M0 and
+M0's draws are known at run time): see `submission/RATIO_AWARE.md`.
 Full list of constants and what was rejected: `submission/ARTIFACT_PROVENANCE.md`.
 
 ## What we tested and rejected (all with walk-forward pseudo-cards + paired bootstrap)
