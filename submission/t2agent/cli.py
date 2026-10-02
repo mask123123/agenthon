@@ -24,7 +24,7 @@ import pandas as pd
 from qfbench2_track_forecasting.cli import _read_panels, _series, _monthly_inputs
 from qfbench2_track_forecasting.limits import ParseLimits
 
-from . import engine, m0_fallback
+from . import engine, m0_fallback, ratio_aware
 
 DEFAULT_DRAWS = 1000
 F4_DRAWS = 2000
@@ -173,6 +173,7 @@ def main(argv=None) -> int:
 
     note = ""
     hist: dict = {}
+    hist_panel: dict = {}
     res = None
     panel_steps = None
     text_ledger: list[str] = []
@@ -193,6 +194,7 @@ def main(argv=None) -> int:
             panel_steps = _monthly_inputs(panels, card, card_path, a.asof)
         except (SystemExit, Exception):
             panel_steps = None
+        hist_panel = {k: v for k, v in hist.items()}       # as shipped: what the organizers' M0 sees
         if panel_steps is not None and all(k in hist for k in assets):
             from . import releases              # latest BLS print in the corpus that the lagging panel does not have yet
             hist, panel_steps, text_ledger = releases.apply_fresh({k: hist[k] for k in assets}, panel_steps, assets, a.text, a.asof)
@@ -212,11 +214,18 @@ def main(argv=None) -> int:
         samples = np.nan_to_num(res.samples, nan=0.0, posinf=0.0, neginf=0.0)
     tone_ledger: list[str] = []
     if not (res.meta.get("fallback") or res.meta.get("m0_fallback")):
+        try:                                              # ratio-aware resampling toward q ∝ p / M0 loss
+            m0_ref = m0_fallback.m0_draws(hist_panel, assets, horizons, target_type, unit_id, 500, obs_periods)
+            samples, ra = ratio_aware.resample(samples, m0_ref, unit_id)
+        except Exception as exc:
+            ra = [f"ratio-aware resampling: M0 unavailable ({type(exc).__name__}), not applied"]
+        tone_ledger += ra
         try:
             from textlayer import text_overlay
-            samples, tone_ledger = text_overlay(samples, assets, horizons, hist, a.text, a.asof)
+            samples, tl = text_overlay(samples, assets, horizons, hist, a.text, a.asof)
         except Exception as exc:                          # the text layer must never cost a card
-            tone_ledger = [f"text layer unavailable: {type(exc).__name__}"]
+            tl = [f"text layer unavailable: {type(exc).__name__}"]
+        tone_ledger += tl
     n_draws = int(samples.shape[0])
     rat = _rationale(unit_id, a.asof, assets, horizons, family, n_draws, samples, res, note, text_ledger, tone_ledger)
     _write(a.out, unit_id, a.asof, assets, horizons, n_draws, samples, target_type, rat)

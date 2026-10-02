@@ -188,3 +188,19 @@ Gaussian fallback in month steps for monthly cards, text layer wired on the engi
 units, 93 resolvable scored vs M0: offline (lexicon path) 103/103 admissible, untouched cards identical, 0.9867 ->
 0.9834 (lexicon cards 0.9873 -> 0.9805, 23 better / 22 worse); live stand-in on UST units 43/43 admissible, 0.9852 ->
 0.9818 (23 House, 20 lexicon under stand-in rate limits). Practice cards informed the decisions: optimistic.
+
+## 2026-10-03 — Ratio-aware forecasting (metric structure, no new information)
+
+Idea: the card score is E[ours(y) / M0(y)] and M0's draws are reproducible at run time, so under belief p the optimal
+forecast for the marginal CRPS term is q(y) ∝ p(y) / CRPS_M0(y) (CRPS is proper). Implemented as importance
+resampling of the engine's joint draws (rows) with weights M0_loss(x)^-gamma (`backtest/ratio_aware.py`;
+CRPS helper matches the official estimator to 1e-15). Belief = teammate engine v2.
+- gamma 0 / .25 / .5 / 1.0, pseudo: 0.9945 / 0.9670 / 0.9572 [0.943, 0.973] / 0.9724; real: 0.9867 / 0.9856 / 1.0099 /
+  1.0814. Widening before reweighting (k 1.15-1.5) is worse everywhere.
+- The split is on single-cell cards: pseudo single-cell gains 5-7% at gamma .5 for every asset class (66-76% of cards
+  better); practice single-cell cards (event-selected) lose. Multi-cell improves or holds on both sets.
+- F1-only routing looked good on real (19 cards) but pseudo F1 templates get worse (+0.013): rejected as overfit.
+- Belief choice: engine > 50/50 pool > M0's own draws.
+- Robust pick (min over max(real, pseudo), single/multi gammas): 0.10 / 0.25 -> real 0.9809, pseudo 0.9792
+  [0.967, 0.993] (788 better / 338 worse). Aggressive 0.5 / 0.25 -> real ~1.007, pseudo ~0.958 (a bet that Final cards
+  look like random dates rather than event-selected practice cards). Selected in-sample (2 parameters).
