@@ -271,7 +271,7 @@ def build_draws(hist: dict[str, pd.Series], assets: list[str], horizons: list[in
 
 
 def fallback_draws(hist: dict[str, pd.Series], assets: list[str], horizons: list[int], target_type: str,
-                   unit_id: str, n_draws: int) -> Result:
+                   unit_id: str, n_draws: int, panel_steps: np.ndarray | None = None) -> Result:
     """Last-resort Gaussian walk. Uses whatever history exists; never raises."""
     rng = np.random.default_rng(zlib.crc32(unit_id.encode()) & 0x7FFFFFFF)
     out = np.empty((n_draws, len(assets), len(horizons)))
@@ -286,6 +286,7 @@ def fallback_draws(hist: dict[str, pd.Series], assets: list[str], horizons: list
             st = np.diff(v) if len(v) > 2 else np.array([0.0]); anchor = float(v[-1])
         sd_ = float(np.std(st[-300:])) if len(st) > 2 and np.std(st[-300:]) > 0 else max(abs(anchor) * 0.01, 1e-4)
         for hi, h in enumerate(horizons):
-            out[:, ai, hi] = anchor + rng.standard_normal(n_draws) * sd_ * np.sqrt(h) * 1.1
+            steps = panel_steps[ai, hi] if panel_steps is not None else h   # monthly cards: months, not BD keys
+            out[:, ai, hi] = anchor + rng.standard_normal(n_draws) * sd_ * np.sqrt(steps) * 1.1
         info[a] = {"anchor": anchor, "step_sd": sd_}
     return Result(out, {"fallback": True, "info": info})

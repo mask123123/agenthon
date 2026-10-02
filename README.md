@@ -19,12 +19,14 @@ Width ≈ 1.0 is the dev optimum (wider and narrower are both worse). The dev le
 final ranking uses a sealed later window (one submission per track, 13–25 Oct 2026). Top dev scores (~-0.63) are
 very likely driven by leakage between practice cards, not by honest skill – do not chase them.
 
-## What the model is (no ML weights, no LLM calls)
+## What the model is
 `submission/t2agent/engine.py`: random walk around the last observation + shrunk sample drift (trailing 300 steps),
 volatility from the same window (with a mild recent-vol adjustment on single-cell cards), multivariate Student-t
 shocks with a shared mixing variable (joint paths across assets/horizons), different parameter sets for
 single-cell vs multi-cell cards (the variogram punishes departures from M0's joint structure), monthly-macro and
-"transfer-card" special cases, and a never-crash fallback ladder (a failed card costs 4.0).
+"transfer-card" special cases, and a never-crash fallback ladder: engine -> exact M0 replica (~1.0) -> Gaussian walk
+(a failed card costs 4.0). For UST targets, `submission/textlayer/` shifts the centre by at most 0.10 sd from the tone of
+the latest FOMC statement (House model; frozen-lexicon fallback). Research: `research/nlp/`.
 Full list of constants and what was rejected: `submission/ARTIFACT_PROVENANCE.md`.
 
 ## What we tested and rejected (all with walk-forward pseudo-cards + paired bootstrap)

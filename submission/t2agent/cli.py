@@ -2,9 +2,10 @@
 
 The `forecast` verb: reads the unit (card.toml, panels, text dir), builds joint draws with
 `engine.build_draws`, and writes forecast.parquet + forecast_meta.json + forecast_rationale.md.
-A failed card costs 4.0 (worst case), so every stage degrades instead of raising: engine ->
-simple Gaussian-walk fallback -> still writes valid files. Output files are mode 0644, dirs 0755
-(the output checker reads them as another user). Text in /input/text is NOT read in this version.
+A failed card costs 4.0 (worst case), so every stage degrades instead of raising: engine -> exact M0 replica
+(~1.0 by construction) -> simple Gaussian walk -> still writes valid files. When the engine succeeds, the text layer
+(`textlayer`) may shift the centre of UST cells by at most 0.10 sd from the tone of the latest FOMC statement in
+/input/text. Output files are mode 0644, dirs 0755 (the output checker reads them as another user).
 """
 from __future__ import annotations
 
@@ -22,7 +23,7 @@ import pandas as pd
 from qfbench2_track_forecasting.cli import _read_panels, _series, _monthly_inputs
 from qfbench2_track_forecasting.limits import ParseLimits
 
-from . import engine
+from . import engine, m0_fallback
 
 DEFAULT_DRAWS = 1000
 F4_DRAWS = 2000
@@ -57,7 +58,7 @@ def _find_card(panels_dir: pathlib.Path, explicit: pathlib.Path | None) -> pathl
     raise SystemExit(f"card.toml not found near {panels_dir}; pass --card")
 
 
-def _rationale(unit_id, asof, assets, horizons, family, n_draws, samples, res, note) -> str:
+def _rationale(unit_id, asof, assets, horizons, family, n_draws, samples, res, note, text_ledger=None) -> str:
     m = res.meta
     rows = []
     for ai, a in enumerate(assets):
@@ -66,7 +67,12 @@ def _rationale(unit_id, asof, assets, horizons, family, n_draws, samples, res, n
             rows.append(f"| {a} | {h} | {m.get('last', {}).get(a, float('nan')):.5g} | "
                         f"{q[0]:.5g} | {q[1]:.5g} | {q[2]:.5g} |")
     body = "\n".join(rows)
-    if m.get("fallback"):
+    text_section = ("\n".join(text_ledger) if text_ledger else
+                    "Nothing: the text layer did not run for this card; every adjustment above is statistical.")
+    if m.get("m0_fallback"):
+        method = ("Fallback: exact replica of the organizers' text-blind M0 baseline (trailing 300 steps, drift and "
+                  f"covariance of steps, joint Gaussian paths) because the main engine could not run: {note}.")
+    elif m.get("fallback"):
         method = ("Fallback Gaussian random walk from the supplied history only (the main engine could not "
                   f"run: {note}).")
     else:
@@ -90,10 +96,10 @@ card metadata read.
 {body}
 
 ## What the text corpus contributed
-Nothing: this version does not read the text corpus; every adjustment above is statistical.
+{text_section}
 
 ## What would change this
-Different volatility in the trailing window, or any document-based evidence (not used here).
+Different volatility in the trailing window; for UST targets, a change in the tone of the latest FOMC statement.
 """
 
 
@@ -111,7 +117,7 @@ def _write(out_path: pathlib.Path, unit_id, asof, assets, horizons, n_draws, sam
     (out_dir / "forecast_meta.json").write_text(json.dumps({
         "unit_id": unit_id, "asof": asof, "representation": "samples", "asset_ids": assets,
         "horizons": horizons, "n_draws": n_draws, "target": target,
-        "rationale": {"file": "forecast_rationale.md", "method": "shrunk-drift t-walk, statistical only"},
+        "rationale": {"file": "forecast_rationale.md", "method": "shrunk-drift t-walk + capped Fed-tone shift on UST cells"},
     }, indent=2) + "\n")
     (out_dir / "forecast_rationale.md").write_text(rationale if rationale.strip() else "# Forecast rationale\nstatistical forecast\n")
     try:                                    # the checker reads as another user
@@ -120,6 +126,17 @@ def _write(out_path: pathlib.Path, unit_id, asof, assets, horizons, n_draws, sam
             os.chmod(p, 0o644 if p.is_file() else 0o755)
     except OSError:
         pass
+
+
+def _fallback(hist, assets, horizons, target_type, unit_id, n_draws, panel_steps, obs_periods):
+    """Exact M0 replica first (scores ~1.0); the plain Gaussian walk only if M0 cannot run either."""
+    try:
+        samples = m0_fallback.m0_draws(hist, assets, horizons, target_type, unit_id, n_draws, obs_periods)
+        last = {a: (0.0 if target_type == "log_return" else float(hist[a].iloc[-1])) for a in assets}
+        return engine.Result(samples, {"m0_fallback": True, "last": last})
+    except Exception as exc:
+        print("M0 fallback failed -> Gaussian walk:", f"{type(exc).__name__}: {exc}", file=sys.stderr)
+        return engine.fallback_draws(hist, assets, horizons, target_type, unit_id, n_draws, panel_steps)
 
 
 def main(argv=None) -> int:
@@ -149,6 +166,13 @@ def main(argv=None) -> int:
     note = ""
     hist: dict = {}
     res = None
+    panel_steps = None
+    obs_periods = None
+    try:                                                  # explicit target months (monthly cards), for M0's rule
+        spec = json.loads((card_path.parent / "forecast_spec.json").read_text())
+        obs_periods = [str(x) for x in (spec.get("targets") or {}).get("observation_periods") or []] or None
+    except Exception:
+        obs_periods = None
     try:
         panels = _read_panels(a.panels)
         for asset in assets:
@@ -167,16 +191,25 @@ def main(argv=None) -> int:
         note = f"{type(exc).__name__}: {exc}"
         print("main engine failed -> fallback:", note, file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
-        res = engine.fallback_draws(hist, assets, horizons, target_type, unit_id, n_draws)
+        res = _fallback(hist, assets, horizons, target_type, unit_id, n_draws, panel_steps, obs_periods)
 
     samples = res.samples
     if not np.isfinite(samples).all():                    # last safety net before writing
-        res = engine.fallback_draws(hist, assets, horizons, target_type, unit_id, n_draws)
+        note = note or "non-finite engine draws"
+        res = _fallback(hist, assets, horizons, target_type, unit_id, n_draws, panel_steps, obs_periods)
         samples = np.nan_to_num(res.samples, nan=0.0, posinf=0.0, neginf=0.0)
-    rat = _rationale(unit_id, a.asof, assets, horizons, family, n_draws, samples, res, note)
+    text_ledger = []
+    if not (res.meta.get("fallback") or res.meta.get("m0_fallback")):
+        try:
+            from textlayer import text_overlay
+            samples, text_ledger = text_overlay(samples, assets, horizons, hist, a.text, a.asof)
+        except Exception as exc:                          # the text layer must never cost a card
+            text_ledger = [f"text layer unavailable: {type(exc).__name__}"]
+    n_draws = int(samples.shape[0])
+    rat = _rationale(unit_id, a.asof, assets, horizons, family, n_draws, samples, res, note, text_ledger)
     _write(a.out, unit_id, a.asof, assets, horizons, n_draws, samples, target_type, rat)
     print(f"wrote forecast for {unit_id}: {len(assets)}x{len(horizons)} cells, {n_draws} draws"
-          + (" [FALLBACK]" if res.meta.get("fallback") else ""))
+          + (" [FALLBACK]" if res.meta.get("fallback") else "") + (" [FALLBACK:M0]" if res.meta.get("m0_fallback") else ""))
     return 0
 
 

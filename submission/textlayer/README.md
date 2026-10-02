@@ -2,8 +2,11 @@
 
 A small, capped text layer on top of the statistical engine. It reads the unit's own corpus, asks the House model
 two one-token questions about the latest FOMC statement, and nudges the centre of **UST cells only** by at most
-**0.10 sd**. Width, joint structure and every non-UST cell are left untouched. Any failure leaves the draws exactly
-as the engine produced them.
+**0.10 sd**. Width, joint structure and every non-UST cell are left untouched. If the House model does not answer,
+the same tone features are computed with a frozen phrase lexicon (`lexicon.py`) and fed to a second fitted model.
+Sentiment readings (economic conditions, uncertainty, wording change) are written to the rationale only.
+Unexpected errors leave the draws exactly as the engine produced them. Wired into `t2agent/cli.py` (engine path
+only; never on the M0 / Gaussian fallbacks).
 
 ## What it does, per unit
 1. `find_statements`: FOMC statements in `text/corpus_index.json` (`doc_type == "fomc_statement"`, or file name
@@ -33,42 +36,19 @@ Coefficients (`coefs.json`): fitted on 1,650 pseudo rates cards 2002–2024 (pra
 excluded), labels from public UST history; Nemotron tone of 213 public-domain FOMC statements 2000–2024.
 The prompts in `fed_tone.py` are byte-identical to the fitted ones; a test fails if they drift.
 
-## Wiring it in (not done in this PR — owner of `t2agent/cli.py` and `Dockerfile` to apply)
-`t2agent/cli.py`, right after the final `np.isfinite` safety net and before `_rationale(...)`:
-```python
-    text_ledger = []
-    if not res.meta.get("fallback"):
-        try:
-            from textlayer import text_overlay
-            samples, text_ledger = text_overlay(samples, assets, horizons, hist, a.text, a.asof)
-        except Exception as exc:
-            text_ledger = [f"text layer unavailable: {type(exc).__name__}"]
-    rat = _rationale(unit_id, a.asof, assets, horizons, family, n_draws, samples, res, note)
-    if text_ledger:
-        rat += "\n## Text layer (Fed tone, UST cells only)\n" + "\n".join(text_ledger) + "\n"
-```
-(and change the rationale's "What the text corpus contributed: Nothing" wording.)
-
-`Dockerfile`: add `COPY textlayer /opt/textlayer` next to `COPY t2agent /opt/t2agent`.
-
-`submission.json` `models[]` (then reseal the descriptor digest):
-```json
-{"name": "nvidia/nemotron-3-super-120b-a12b", "version": "rl-030326-fp8", "revision": "rl-030326-fp8",
- "training_cutoff": "unpublished", "access": "api"}
-{"name": "team304/ust-fed-tone-logit", "version": "v1", "revision": "sha256:<sha256 of textlayer/coefs.json>",
- "training_cutoff": "2024-12-18", "access": "local"}
-```
-
-`ARTIFACT_PROVENANCE.md`: add the layer (House model; fitted logistic in `coefs.json` with the training data
-above; FOMC statements from federalreserve.gov, public domain, used offline only), and replace "the text corpus is
-not read and the House model is not called".
-
-Verified with the patch applied in a scratch copy: all 103 practice units pass g0–g3 offline (outputs identical
-to the unpatched engine) and all 43 UST units pass with the stand-in endpoint live.
+## Release checklist
+- `Dockerfile` copies `textlayer`; `make_descriptor.py` writes both `models[]` rows (House model, and the fitted
+  logistic with the sha256 of `coefs.json`; `tests/test_release.py` fails if they drift).
+- `ARTIFACT_PROVENANCE.md` describes the layer, its data and the House call.
+- End-to-end on the 103 practice units (scratch runs, numbers on the 93 resolvable ones, normalized vs M0):
+  offline (lexicon path) 103/103 admissible, untouched cards identical to `main`, mean 0.9867 -> 0.9834;
+  live with the build.nvidia stand-in (UST units) 43/43 admissible, 0.9852 -> 0.9818 (23 House, 20 lexicon under
+  stand-in rate limits). These practice cards also informed the go decision, so read the gains as optimistic.
 
 ## Tests
 ```bash
 cd submission && python textlayer/tests/test_textlayer.py
 ```
-Failure modes (no endpoint, 401, refused, garbage, prose, no logprobs, no statement, budget) and invariants
-(UST-only, ≤ 0.10 sd, width unchanged, finite, prompt identity).
+Failure modes (no endpoint, 401, refused, garbage, prose -> lexicon path; no logprobs -> answer token; no
+statement -> unchanged; budget cap) and invariants (UST-only, <= 0.10 sd, width unchanged, finite, sentiment never
+moves the forecast, prompt and lexicon identity with the fitted ones). Fallback ladder: `tests/test_fallback.py`.

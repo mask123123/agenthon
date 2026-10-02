@@ -1,38 +1,74 @@
 {
- "model": "L2 logistic regression (C=0.3), Newton iterations, standardized features",
- "features": [
-  "trend_sign_m0_drift",
-  "nemotron_n1_hawkish_1to5",
-  "nemotron_n2_vs_previous"
- ],
- "mean": [
-  -0.01562881562881563,
-  2.4301588662616926,
-  -0.29661217838962967
- ],
- "scale": [
-  0.9977997484296245,
-  0.8360039294866967,
-  0.5955434354598906
- ],
- "intercept": 0.10500024793005082,
- "weights": [
-  -0.4527113768923554,
-  -0.7335074664072769,
-  0.41326760825868
- ],
  "mapping": {
   "shift_sd_per_unit": 0.25,
   "cap_sd": 0.1
  },
- "training": {
-  "rows": 4095,
-  "cards": 1650,
-  "asof_range": [
-   "2002-01-03",
-   "2024-10-23"
+ "house": {
+  "model": "L2 logistic regression (C=0.3), Newton iterations, standardized features",
+  "features": [
+   "trend_sign_m0_drift",
+   "nemotron_n1_hawkish_1to5",
+   "nemotron_n2_vs_previous"
   ],
-  "data": "pseudo-cards re-dated from public UST panels (H.15 via FRED, as shipped in practice units) 2002-2024; labels = side of realized value vs M0 centre; Nemotron tone on 213 public-domain FOMC statements 2000-2024 (federalreserve.gov); (asset, as-of +-7d) pairs coinciding with practice units excluded",
-  "data_cutoff": "2024-12-18"
+  "mean": [
+   -0.01562881562881563,
+   2.4301588662616926,
+   -0.29661217838962967
+  ],
+  "scale": [
+   0.9977997484296245,
+   0.8360039294866967,
+   0.5955434354598906
+  ],
+  "intercept": 0.10500024793005082,
+  "weights": [
+   -0.4527113768923554,
+   -0.7335074664072769,
+   0.41326760825868
+  ],
+  "training": {
+   "rows": 4095,
+   "cards": 1650,
+   "asof_range": [
+    "2002-01-03",
+    "2024-10-23"
+   ],
+   "data": "pseudo-cards re-dated from public UST panels (H.15 via FRED, as shipped in practice units) 2002-2024; labels = side of realized value vs M0 centre; Nemotron tone on 213 public-domain FOMC statements 2000-2024 (federalreserve.gov); (asset, as-of +-7d) pairs coinciding with practice units excluded",
+   "data_cutoff": "2024-12-18"
+  }
+ },
+ "lexicon": {
+  "model": "L2 logistic regression (C=0.3), Newton iterations, standardized features",
+  "features": [
+   "trend_sign_m0_drift",
+   "lexicon_tone_latest",
+   "lexicon_tone_change_vs_previous"
+  ],
+  "mean": [
+   -0.01562881562881563,
+   -0.29250271909612485,
+   0.013025288034445609
+  ],
+  "scale": [
+   0.9977997484296245,
+   0.45949771731004024,
+   0.23728801319703108
+  ],
+  "intercept": 0.0927826815175028,
+  "weights": [
+   -0.4924710778343972,
+   -0.40301420843546165,
+   0.27068147942405274
+  ],
+  "training": {
+   "rows": 4095,
+   "cards": 1650,
+   "asof_range": [
+    "2002-01-03",
+    "2024-10-23"
+   ],
+   "data": "pseudo-cards re-dated from public UST panels (H.15 via FRED, as shipped in practice units) 2002-2024; labels = side of realized value vs M0 centre; lexicon tone (textlayer/lexicon.py, frozen) of 213 public-domain FOMC statements 2000-2024 (federalreserve.gov); (asset, as-of +-7d) pairs coinciding with practice units excluded",
+   "data_cutoff": "2024-12-18"
+  }
  }
 }
