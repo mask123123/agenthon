@@ -271,8 +271,11 @@ def build_draws(hist: dict[str, pd.Series], assets: list[str], horizons: list[in
 
 
 def fallback_draws(hist: dict[str, pd.Series], assets: list[str], horizons: list[int], target_type: str,
-                   unit_id: str, n_draws: int) -> Result:
-    """Last-resort Gaussian walk. Uses whatever history exists; never raises."""
+                   unit_id: str, n_draws: int, panel_steps: np.ndarray | None = None) -> Result:
+    """Last-resort Gaussian walk. Uses whatever history exists; never raises.
+
+    Horizons are converted to panel steps exactly like the main engine (explicit monthly steps when given, otherwise
+    the M0 spacing rule), so a monthly macro card no longer uses the business-day key as a step count."""
     rng = np.random.default_rng(zlib.crc32(unit_id.encode()) & 0x7FFFFFFF)
     out = np.empty((n_draws, len(assets), len(horizons)))
     info = {}
@@ -285,7 +288,15 @@ def fallback_draws(hist: dict[str, pd.Series], assets: list[str], horizons: list
         else:
             st = np.diff(v) if len(v) > 2 else np.array([0.0]); anchor = float(v[-1])
         sd_ = float(np.std(st[-300:])) if len(st) > 2 and np.std(st[-300:]) > 0 else max(abs(anchor) * 0.01, 1e-4)
+        try:
+            spacing = _spacing_days(s, WINDOW) if s is not None and len(s) > 3 else 1.4
+        except Exception:
+            spacing = 1.4
         for hi, h in enumerate(horizons):
-            out[:, ai, hi] = anchor + rng.standard_normal(n_draws) * sd_ * np.sqrt(h) * 1.1
-        info[a] = {"anchor": anchor, "step_sd": sd_}
+            try:
+                steps = int(panel_steps[ai, hi]) if panel_steps is not None else _panel_steps_for(int(h), spacing)
+            except Exception:
+                steps = int(h)
+            out[:, ai, hi] = anchor + rng.standard_normal(n_draws) * sd_ * np.sqrt(max(steps, 1)) * 1.1
+        info[a] = {"anchor": anchor, "step_sd": sd_, "spacing_days": spacing}
     return Result(out, {"fallback": True, "info": info})

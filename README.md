@@ -5,13 +5,13 @@ financial time series (rates, G10 FX, factors, monthly macro) from a numeric pan
 Score per card = composite(CRPS, variogram, tail pinball) / same composite of the text-blind baseline **M0**
 (1.0 = M0, lower is better). Details: <https://www.agenthon.net/guides/>.
 
-## Where we are (2026-10-01)
+## Where we are (2026-10-02)
 Dev-board scores (higher = better, M0 ≈ -1.0):
 
 | image | what it is | dev score |
 |---|---|---|
 | v2 | baseline engine | **-0.9933** |
-| v3 | v2 + transfer-card fix | **-0.9953** ← final candidate |
+| v3 | v2 + transfer-card fix | **-0.9953** ← final candidate (v7 = v3 numerics + safer fallback path, outputs bit-identical) |
 | v6 | single-cell cards ×0.9 narrower | -1.0094 |
 | v4 | all cards ×1.35 wider | -1.0465 |
 
@@ -62,3 +62,18 @@ Build **linux/amd64** (Apple-silicon builds are arm64 and will be held by the pl
   official repos instead of copying them here.
 - Output files must be mode 0644 / dirs 0755 or the whole unit scores as `no_output`.
 - Dev uploads: 5/day, 20 total; held uploads still count. Final phase: ONE submission.
+
+## Team notes (2026-10-02)
+- `research/nlp/` (Yakou): exact M0 replica + pseudo-card harness with common random numbers, oracle value-of-information
+  table, blind-read tests, Fed-tone study; see `research/nlp/RESEARCH_LOG.md`. It reaches the same conclusion as
+  `t2work/`: a text-blind statistical engine is worth ~0-1 % over M0 and the text "edge" on practice cards cannot be
+  separated from model memory. NB: `research/nlp/t2agent/` is a research copy and is **not** the shipped package
+  (`submission/t2agent/`); do not put both on `PYTHONPATH`.
+- `submission/textlayer/` (Fed-tone centre shift for UST cells, House model first-token logprobs): merged for the record,
+  **not wired into the image and not planned for the Final** (expected effect ~0; unverified `logprobs` support on the
+  House route; no visibility into House calls on the platform). Re-open only with new evidence.
+- Fallback path fixed in v7: a monthly macro card that fell back used the business-day key as a step count (~5x too wide).
+  `submission/tests/test_fallback.py` guards it. Main-path outputs are unchanged (104/104 units bit-identical to v3).
+- Policy to agree on: nothing that is packaged into the image, and no ship/no-ship decision, may depend on practice-unit
+  outcomes reconstructed from sibling panels (Rules section 7 is ambiguous and the organisers have not answered issue #24).
+  Use pseudo-cards from public history only.

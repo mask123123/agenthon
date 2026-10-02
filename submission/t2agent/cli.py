@@ -149,6 +149,7 @@ def main(argv=None) -> int:
     note = ""
     hist: dict = {}
     res = None
+    panel_steps = None
     try:
         panels = _read_panels(a.panels)
         for asset in assets:
@@ -167,11 +168,11 @@ def main(argv=None) -> int:
         note = f"{type(exc).__name__}: {exc}"
         print("main engine failed -> fallback:", note, file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
-        res = engine.fallback_draws(hist, assets, horizons, target_type, unit_id, n_draws)
+        res = engine.fallback_draws(hist, assets, horizons, target_type, unit_id, n_draws, panel_steps=panel_steps)
 
     samples = res.samples
     if not np.isfinite(samples).all():                    # last safety net before writing
-        res = engine.fallback_draws(hist, assets, horizons, target_type, unit_id, n_draws)
+        res = engine.fallback_draws(hist, assets, horizons, target_type, unit_id, n_draws, panel_steps=panel_steps)
         samples = np.nan_to_num(res.samples, nan=0.0, posinf=0.0, neginf=0.0)
     rat = _rationale(unit_id, a.asof, assets, horizons, family, n_draws, samples, res, note)
     _write(a.out, unit_id, a.asof, assets, horizons, n_draws, samples, target_type, rat)

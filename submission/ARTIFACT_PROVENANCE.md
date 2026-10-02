@@ -30,7 +30,8 @@ Random walk around the last observation (zero for log-return targets) with:
   at the as-of), early-window drift ignored;
 - horizons converted to panel steps with the M0 rule (declared horizon kept unless the calendar-spacing count differs
   by 2x or more);
-- fallback ladder: if the engine fails, a plain Gaussian walk from the supplied history is written; output files are
+- fallback ladder: if the engine fails, a plain Gaussian walk from the supplied history is written, with horizons converted
+  to panel steps like the main engine (explicit monthly steps, otherwise the M0 spacing rule); output files are
   mode 0644 / directories 0755.
 
 Backtest evidence (internal, public history only): the single-cell / multi-cell parameter split, the volatility
