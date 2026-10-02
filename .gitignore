@@ -24,3 +24,11 @@ t2work/*.log
 *.pem
 .env
 *team_key*
+
+# --- research/nlp: reconstructed practice outcomes, third-party corpus excerpts, model outputs, API key
+research/nlp/backtest/data/
+research/nlp/backtest/opus_packets/
+research/nlp/backtest/opus_out/
+research/nlp/release/
+.env.nvidia
+*.env
