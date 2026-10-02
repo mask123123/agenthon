@@ -19,7 +19,7 @@ Width ≈ 1.0 is the dev optimum (wider and narrower are both worse). The dev le
 final ranking uses a sealed later window (one submission per track, 13–25 Oct 2026). Top dev scores (~-0.63) are
 very likely driven by leakage between practice cards, not by honest skill – do not chase them.
 
-## What the model is (no ML weights, no LLM calls; reads BLS release *numbers* from the corpus)
+## What the model is (no ML weights; reads BLS release *numbers* and, for UST targets, FOMC tone from the corpus)
 `submission/t2agent/engine.py`: random walk around the last observation + shrunk sample drift (trailing 300 steps),
 volatility from the same window (with a mild recent-vol adjustment on single-cell cards), multivariate Student-t
 shocks with a shared mixing variable (joint paths across assets/horizons), different parameter sets for
@@ -69,14 +69,19 @@ Build **linux/amd64** (Apple-silicon builds are arm64 and will be held by the pl
   `t2work/`: a text-blind statistical engine is worth ~0-1 % over M0 and the text "edge" on practice cards cannot be
   separated from model memory. NB: `research/nlp/t2agent/` is a research copy and is **not** the shipped package
   (`submission/t2agent/`); do not put both on `PYTHONPATH`.
-- `submission/textlayer/` (Fed-tone centre shift for UST cells, House model first-token logprobs): merged for the record,
-  **not wired into the image and not planned for the Final** (expected effect ~0; unverified `logprobs` support on the
-  House route; no visibility into House calls on the platform). Re-open only with new evidence.
+- `submission/textlayer/` (Fed-tone centre shift for UST cells, <= 0.10 sd): **wired in by the `feature/release-textlayer-m0`
+  PR, for the team to decide** (2026-10-03). Concerns raised here and how the PR handles them: unverified `logprobs` on
+  the House route -> falls back to the answered token, and to a frozen phrase-lexicon model if House does not answer;
+  no visibility into House calls -> every outcome is written to the rationale, and any failure leaves the engine's draws
+  (lexicon path) or exact M0 (engine failure). Expected effect: neutral on random-date pseudo-cards, positive on the
+  practice event cards (optimistic, those also informed the decision); downside bounded by the cap.
 - Fallback path fixed in v7: a monthly macro card that fell back used the business-day key as a step count (~5x too wide).
   `submission/tests/test_fallback.py` guards it. Main-path outputs are unchanged (104/104 units bit-identical to v3).
 - Policy to agree on: nothing that is packaged into the image, and no ship/no-ship decision, may depend on practice-unit
   outcomes reconstructed from sibling panels (Rules section 7 is ambiguous and the organisers have not answered issue #24).
-  Use pseudo-cards from public history only.
+  Use pseudo-cards from public history only. (Update 2026-10-03: issue #24 was answered on 2 Oct — choosing a few
+  constants by a pre-registered rule on a local score over the practice units is allowed; `ARTIFACT_PROVENANCE.md`
+  must record the data used. The text-layer coefficients are fitted on pseudo-cards only.)
 
 ## First real text edge (2026-10-02): numbers, not tone
 `submission/t2agent/releases.py` reads the BLS release (CPI, core CPI, unemployment rate, payrolls) that the corpus

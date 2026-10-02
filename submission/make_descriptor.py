@@ -12,12 +12,20 @@ ap.add_argument("--repo", default="mask123123/t2-forecaster")
 ap.add_argument("--registry", default="ghcr.io")
 ap.add_argument("--out", default="submission.json")
 a = ap.parse_args()
+# House model (textlayer/fed_tone.py) and the fitted logistic shipped as textlayer/coefs.json (artifact policy:
+# bundled fitted models are disclosed with access "local" and their training cutoff). tests/test_release.py checks the sha.
+MODELS = [
+    {"name": "nvidia/nemotron-3-super-120b-a12b", "version": "rl-030326-fp8", "revision": "rl-030326-fp8",
+     "training_cutoff": "unpublished", "access": "api"},
+    {"name": "team304/ust-fed-tone-logit", "version": "v1",
+     "revision": "sha256:452207a16c33227c88159dcf21eaa7b6f51aeacb7dfedf3026b8aaafd00dc132", "training_cutoff": "2024-12-18", "access": "local"},
+]
 d = {
     "schema_version": "1.1.0", "interface_version": "2.0",
     "competition_id": "agenthon2026-forecasting-dev", "team_id": a.team_id,
     "track": "forecasting", "phase": "dev", "category": "api",
     "image": {"registry": a.registry, "repository": a.repo, "digest": a.digest},
-    "image_access": "public", "models": [], "license": "MIT",
+    "image_access": "public", "models": MODELS, "license": "MIT",
     "descriptor_digest": "sha256:" + "0" * 64,
 }
 d = seal_descriptor_digest(d)
