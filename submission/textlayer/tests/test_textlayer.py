@@ -91,23 +91,28 @@ def _run(endpoint, n_statements=2):
     return samples, out, ledger
 
 
-def test_unchanged_on_every_failure():
-    cases = {"no endpoint": lambda: _run(None),
-             "connection refused": lambda: _run("http://127.0.0.1:9")}
+def _check_shift(before, after, max_sd=0.100001):
+    assert np.array_equal(before[:, 1, :], after[:, 1, :]), "non-UST cells must not move"
+    shift_sd = (after[:, 0, :].mean(0) - before[:, 0, :].mean(0)) / before[:, 0, :].std(0)
+    assert np.all(np.abs(shift_sd) <= max_sd) and np.any(shift_sd != 0), shift_sd
+    assert np.allclose(after[:, 0, :].std(0), before[:, 0, :].std(0)), "width must not change"
+    assert np.isfinite(after).all()
+
+
+def test_house_failure_falls_back_to_lexicon():
+    cases = {"no endpoint": lambda: _run(None), "connection refused": lambda: _run("http://127.0.0.1:9")}
+    servers = []
     for name, reply in {"401": lambda b: (401, "{}"), "garbage": lambda b: (200, "<html>"),
                         "prose": lambda b: (200, json.dumps({"choices": [{"message": {"content": "I think hawkish"}}]}))}.items():
         srv, url = _serve(reply)
+        servers.append(srv)
         cases[name] = (lambda u: (lambda: _run(u)))(url)
-        cases[name + "_srv"] = srv
     for name, fn in cases.items():
-        if name.endswith("_srv"):
-            continue
         before, after, ledger = fn()
-        assert np.array_equal(before, after), name
-        assert "not applied" in ledger[0], (name, ledger)
-    for k, v in cases.items():
-        if k.endswith("_srv"):
-            v.shutdown()
+        _check_shift(before, after)
+        assert any("lexicon model" in line for line in ledger), (name, ledger)
+    for srv in servers:
+        srv.shutdown()
 
 
 def test_no_statement_unchanged():
@@ -117,22 +122,34 @@ def test_no_statement_unchanged():
     assert np.array_equal(before, after) and "no FOMC statement" in ledger[0]
 
 
+def test_sentiment_is_reported_not_applied():
+    srv, url = _serve(_logprob_reply)
+    _, after_a, ledger = _run(url)
+    srv.shutdown()
+    assert any("sentiment (reported only)" in line for line in ledger)
+    import textlayer.lexicon as lx
+    saved = lx.econ_sentiment, lx.uncertainty
+    lx.econ_sentiment, lx.uncertainty = (lambda t: 9.0), (lambda t: 99.0)  # wildly different sentiment
+    srv, url = _serve(_logprob_reply)
+    _, after_b, _ = _run(url)
+    srv.shutdown()
+    lx.econ_sentiment, lx.uncertainty = saved
+    assert np.array_equal(after_a, after_b), "sentiment must not move the forecast"
+
+
 def test_success_shifts_only_ust_within_cap():
     srv, url = _serve(_logprob_reply)
     before, after, ledger = _run(url)
     srv.shutdown()
-    assert np.array_equal(before[:, 1, :], after[:, 1, :]), "non-UST cells must not move"
-    shift_sd = (after[:, 0, :].mean(0) - before[:, 0, :].mean(0)) / before[:, 0, :].std(0)
-    assert np.all(np.abs(shift_sd) <= 0.100001) and np.any(shift_sd != 0), shift_sd
-    assert np.allclose(after[:, 0, :].std(0), before[:, 0, :].std(0)), "width must not change"
-    assert np.isfinite(after).all() and "n1=" in ledger[0]
+    _check_shift(before, after)
+    assert any("model 'house'" in line for line in ledger), ledger
 
 
 def test_no_logprobs_falls_back_to_answer_token():
     srv, url = _serve(lambda b: (200, json.dumps({"choices": [{"message": {"content": "4" if "single digit" in b["messages"][-1]["content"] else "B"}}]})))
     before, after, ledger = _run(url)
     srv.shutdown()
-    assert "n1=4.00" in ledger[0], ledger
+    assert any("hawkishness 4.00" in line for line in ledger), ledger
 
 
 def test_budget_never_exceeds_cap():
@@ -151,6 +168,21 @@ def test_prompts_match_the_ones_coefs_were_fitted_with():
     src = research.read_text()
     for s in (fed_tone.SYS, fed_tone.Q1, fed_tone.Q2):
         assert s in src, "prompt drifted from the fitted one: refit coefs.json or revert the prompt"
+
+
+def test_lexicons_match_the_ones_coefs_were_fitted_with():
+    import ast
+    from textlayer import lexicon
+    base = pathlib.Path(__file__).resolve().parents[3] / "research" / "nlp" / "backtest"
+    if not base.is_dir():
+        return
+    found = {}
+    for f in ("step1_nlp.py", "step1b_compare.py"):
+        for node in ast.parse((base / f).read_text()).body:
+            if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
+                found[node.targets[0].id] = ast.literal_eval(node.value) if isinstance(node.value, ast.List) else None
+    for name in ("HAWK", "DOVE", "ECON_POS", "ECON_NEG", "UNCERT"):
+        assert getattr(lexicon, name) == found[name], f"{name} drifted from the fitted lexicon"
 
 
 def test_find_statements_respects_asof():

@@ -173,3 +173,18 @@ Same logistic (C = 0.3), mapping (shift = clip(0.25(2P-1), +-0.1) sd), splits, b
 Ship rule (same standard as the rates layer A): pseudo delta CI upper <= +0.010 in both splits AND pooled real delta < 0.
 Final coefficients (rates and, if shipped, FX) are refit on ALL pseudo-cards excluding (asset, as-of +-7 days) pairs that
 coincide with a practice unit (team rule), then frozen into the image.
+
+## 2026-10-03 — correction, lexicon fallback, release wiring
+
+Correction: the C1 protocol said "same standard as the rates layer A: pseudo CI upper <= +0.010". Layer A itself has
+pseudo CI uppers +0.0126 / +0.0138 (it was accepted on the user's decision with that risk stated, not on that rule).
+C1's rejection stands on its real-card result (+0.015).
+Lexicon fallback (trend + lexicon tone, teammate engine base): pseudo +0.0033 [-0.0060,+0.0140] / +0.0049
+[-0.0039,+0.0151]; real -0.0014 (n=29) / -0.0117 (n=12), pooled -0.0044 — same risk profile as layer A, weaker on
+real cards. Shipped only as the path used when the House model does not answer. Sentiment features stay out of the
+model (Step 1b: they lowered AUC) and are reported in the rationale only.
+Release (branch feature/fed-tone-textlayer): exact-M0 fallback (bit-identical to t2agent/m0.py on 5 card types),
+Gaussian fallback in month steps for monthly cards, text layer wired on the engine path. End-to-end on the 103 practice
+units, 93 resolvable scored vs M0: offline (lexicon path) 103/103 admissible, untouched cards identical, 0.9867 ->
+0.9834 (lexicon cards 0.9873 -> 0.9805, 23 better / 22 worse); live stand-in on UST units 43/43 admissible, 0.9852 ->
+0.9818 (23 House, 20 lexicon under stand-in rate limits). Practice cards informed the decisions: optimistic.

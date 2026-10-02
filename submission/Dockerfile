@@ -24,6 +24,7 @@ RUN pip install --no-cache-dir \
 
 COPY qfbench2_track_forecasting /opt/qfbench2_track_forecasting
 COPY t2agent /opt/t2agent
+COPY textlayer /opt/textlayer
 ARG CONFIG_JSON="{}"
 RUN printf '%s' "$CONFIG_JSON" > /opt/t2agent/config.json
 COPY ARTIFACT_PROVENANCE.md LICENSE LICENSE.third_party_qfbench2 /opt/

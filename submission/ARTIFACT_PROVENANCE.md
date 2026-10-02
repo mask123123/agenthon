@@ -1,13 +1,15 @@
 # Artifact provenance (Agenthon 2026, Track 2)
 
 ## Executive summary
-This image contains statistical code only. There are no fitted model files, no neural weights, no stored answers,
-no lookup tables and no external data. The few numeric constants below were chosen by walk-forward backtests on
+This image contains statistical code plus a small text layer. It holds no neural weights, no stored answers, no
+lookup tables and no external data; its only fitted file is `textlayer/coefs.json` (two small logistic models). The few numeric constants below were chosen by walk-forward backtests on
 public panel history (rates / FX / factor panels from the public practice units, all dated 2000-2024), i.e. data that
-existed before any sealed-set as-of date. No language-model weights, adapters or NLP models are packaged. The unit's own text corpus is read for ONE purpose only:
-extracting published numbers from macro releases (see "Text-derived numbers" below). That is done with regular expressions
-and, only where they cannot read a release newer than the lagging panel, with ONE narrow request to the organiser-hosted House
-model whose answer is verified in code before use. The descriptor therefore declares the House model (`models[]`, access api).
+existed before any sealed-set as-of date. No language-model weights or adapters are packaged. The unit's own text corpus is read
+for two purposes: (1) extracting published numbers from macro releases ("Text-derived numbers"): regular expressions first and,
+only where they cannot read a release newer than the lagging panel, ONE narrow request to the organiser-hosted House model whose
+answer is verified in code before use; (2) for UST targets, the tone of the latest FOMC statement ("Text layer": House model with a
+frozen phrase-lexicon fallback) which moves the centre by at most 0.10 sd. `models[]` discloses the House model and the fitted
+logistic.
 
 ## Components
 | item | source / version | licence | role |
@@ -16,6 +18,9 @@ model whose answer is verified in code before use. The descriptor therefore decl
 | qfbench2_track_forecasting (vendored, unmodified) | github.com/Agenthon-2026/track2-forecasting-public | MIT | panel and horizon helpers |
 | qfbench2-common v2.4.4 | github.com/Agenthon-2026/Agenthon2026-public (tag v2.4.4) | MIT | contracts and limits |
 | numpy 2.1.3, pandas 2.2.3, pyarrow 18.1.0, jsonschema 4.23.0 | PyPI | BSD-3 / Apache-2.0 / MIT | numerics |
+| textlayer (this repo) | our own code; phrase lexicons written by the team | MIT | Fed-tone centre shift on UST cells |
+| textlayer/coefs.json | fitted by us (research/nlp/backtest/step1_nlp.py, step1b_compare.py) | MIT | two L2 logistic models |
+| nvidia/nemotron-3-super-120b-a12b rl-030326-fp8 | organizer House route (API), unchanged | per organizer | tone of FOMC statements |
 
 ## Method (engine.py) and constants
 Random walk around the last observation (zero for log-return targets) with:
@@ -32,14 +37,16 @@ Random walk around the last observation (zero for log-return targets) with:
   at the as-of), early-window drift ignored;
 - horizons converted to panel steps with the M0 rule (declared horizon kept unless the calendar-spacing count differs
   by 2x or more);
-- fallback ladder: if the engine fails, a plain Gaussian walk from the supplied history is written, with horizons converted
-  to panel steps like the main engine (explicit monthly steps, otherwise the M0 spacing rule); output files are
+- fallback ladder: if the engine fails, an exact replica of the organizers' M0 baseline (docs/M0-BASELINE.md, ~1.0 by
+  construction) is written; if that cannot run either, a plain Gaussian walk from the supplied history, with horizons
+  converted to panel steps like the main engine (explicit monthly steps, otherwise the M0 spacing rule); output files are
   mode 0644 / directories 0755.
 
 Backtest evidence (internal, public history only): the single-cell / multi-cell parameter split, the volatility
 adjustment exponent and the t degrees of freedom were selected on as-of dates before 2015 and checked on 2015-2024.
 Alternatives that were tested and rejected: GARCH(1,1), AR(1) centre, other drift look-backs, volatility
-term-structure, robust volatility, correlation shrinkage, and any text-derived adjustment (no reliable signal).
+term-structure, robust volatility, correlation shrinkage; a free-form LLM forecasting layer (harmful), sentiment features
+in a text model (overfit), and a Fed-tone layer for USD FX (not robust).
 
 ## Text-derived numbers (releases.py) - deterministic, no model
 Monthly macro panels (CPI, core CPI, unemployment rate, nonfarm payrolls) lag the as-of by 1-2 months. If the unit's own
@@ -65,7 +72,20 @@ BLS documents in the public practice corpora parse; against the public monthly p
 11/11 and unemployment 11/12 are within tolerance (differences are later data revisions). Backtest on public history: one
 extra month of macro data improves the score on such cards by ~13 % (20 % at two steps).
 
+## Text layer (textlayer/) - UST targets, engine path only
+The latest FOMC statement (and the previous one) dated on or before the as-of are taken from the unit's corpus. The House
+model gives two one-token tone readings (first-token logprobs, thinking off, temperature 0; normally 2 requests, at most
+6 per unit). Features [sign of M0's drift, tone level, tone change] -> frozen logistic model -> P(outcome above M0's
+centre) -> centre shift clip(0.25(2P-1), +-0.10) sd of the cell's draws. Width and joint structure are unchanged;
+non-UST cells are untouched. If the House model does not answer, the same features computed with a frozen phrase
+lexicon feed a second logistic model. Sentiment readings (economic conditions, uncertainty, wording change) are written
+to the rationale only and do not move the forecast. Coefficients: 1,650 pseudo rates cards 2002-2024 (practice-unit
+(asset, as-of +-7 d) pairs excluded), labels from public UST history; FOMC statements 2000-2024 from
+federalreserve.gov (public domain, offline only, not in the image). Protocols: research/nlp/RESEARCH_LOG.md.
+
 ## Data used for selection and calibration
 Public panels up to 2024-12-18 (rates), 2024-10-31 (FX), 2024-05-31 (factors, macro). Pseudo-cards were generated from
 those series at regular as-of dates; pseudo-cards coinciding (+-7 days, same asset) with a practice unit were excluded
-from width-calibration experiments. No practice unit's hidden outcome was reconstructed or used.
+from width-calibration experiments. No practice unit's hidden outcome is in the image or was used to fit any constant.
+For the text layer, practice outcomes reconstructed from public panels were used only to evaluate the layer locally
+(track issue #24, answered 2 Oct: tuning/calibration on practice data by a pre-registered rule is allowed).
