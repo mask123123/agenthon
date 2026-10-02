@@ -19,7 +19,7 @@ Width ≈ 1.0 is the dev optimum (wider and narrower are both worse). The dev le
 final ranking uses a sealed later window (one submission per track, 13–25 Oct 2026). Top dev scores (~-0.63) are
 very likely driven by leakage between practice cards, not by honest skill – do not chase them.
 
-## What the model is (no ML weights, no LLM calls)
+## What the model is (no ML weights, no LLM calls; reads BLS release *numbers* from the corpus)
 `submission/t2agent/engine.py`: random walk around the last observation + shrunk sample drift (trailing 300 steps),
 volatility from the same window (with a mild recent-vol adjustment on single-cell cards), multivariate Student-t
 shocks with a shared mixing variable (joint paths across assets/horizons), different parameter sets for
@@ -77,3 +77,11 @@ Build **linux/amd64** (Apple-silicon builds are arm64 and will be held by the pl
 - Policy to agree on: nothing that is packaged into the image, and no ship/no-ship decision, may depend on practice-unit
   outcomes reconstructed from sibling panels (Rules section 7 is ambiguous and the organisers have not answered issue #24).
   Use pseudo-cards from public history only.
+
+## First real text edge (2026-10-02): numbers, not tone
+`submission/t2agent/releases.py` reads the BLS release (CPI, core CPI, unemployment rate, payrolls) that the corpus
+carries on/just before the as-of and the lagging monthly panel does not have yet, and appends it to the history (regexes,
+no model). On public-history pseudo-cards one extra month is worth **~13 % of the score** (20 % at 2 steps) on such cards;
+in the practice set 2/104 cards have a fresher release (CPI glidepath 2023, Sahm watch 2024) -> overall effect ~0.3 %.
+Validation: `submission/tests/validate_releases.py` (54/60 BLS documents parse; core CPI 34/34, CPI 36/37, payrolls 11/11,
+unemployment 11/12 within tolerance vs the public panel), unit tests in `submission/tests/`. Image `v8`.

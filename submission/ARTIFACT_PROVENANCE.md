@@ -4,8 +4,9 @@
 This image contains statistical code only. There are no fitted model files, no neural weights, no stored answers,
 no lookup tables and no external data. The few numeric constants below were chosen by walk-forward backtests on
 public panel history (rates / FX / factor panels from the public practice units, all dated 2000-2024), i.e. data that
-existed before any sealed-set as-of date. The text corpus is not read and the House model is not called
-(`models: []`).
+existed before any sealed-set as-of date. The House model is not called and no language model or NLP model is used
+(`models: []`). The unit's own text corpus is read for ONE purpose only: extracting published numbers from BLS releases
+with regular expressions (see "Text-derived numbers" below).
 
 ## Components
 | item | source / version | licence | role |
@@ -38,6 +39,18 @@ Backtest evidence (internal, public history only): the single-cell / multi-cell 
 adjustment exponent and the t degrees of freedom were selected on as-of dates before 2015 and checked on 2015-2024.
 Alternatives that were tested and rejected: GARCH(1,1), AR(1) centre, other drift look-backs, volatility
 term-structure, robust volatility, correlation shrinkage, and any text-derived adjustment (no reliable signal).
+
+## Text-derived numbers (releases.py) - deterministic, no model
+Monthly macro panels (CPI, core CPI, unemployment rate, nonfarm payrolls) lag the as-of by 1-2 months. If the unit's own
+corpus contains a BLS release (`doc_type == "macro_release"`, dated on or before the as-of) for the month right after the
+panel's last observation, the release's numbers are appended to the history: unemployment rate (level), CPI and core CPI
+(seasonally adjusted monthly % change applied to the panel's last seasonally adjusted level), payrolls (change plus the
+stated revisions of the two prior months). The engine then anchors on the newest value with one fewer step. A value is used
+only if the release month is exactly the next month, it parses cleanly and passes domain bounds; otherwise nothing changes.
+No judgement, tone or forecast is read from any text. Parser validation (tests/validate_releases.py): 54 of the 60 unique
+BLS documents in the public practice corpora parse; against the public monthly panel, core CPI 34/34, CPI 36/37, payrolls
+11/11 and unemployment 11/12 are within tolerance (differences are later data revisions). Backtest on public history: one
+extra month of macro data improves the score on such cards by ~13 % (20 % at two steps).
 
 ## Data used for selection and calibration
 Public panels up to 2024-12-18 (rates), 2024-10-31 (FX), 2024-05-31 (factors, macro). Pseudo-cards were generated from

@@ -4,7 +4,7 @@ The `forecast` verb: reads the unit (card.toml, panels, text dir), builds joint 
 `engine.build_draws`, and writes forecast.parquet + forecast_meta.json + forecast_rationale.md.
 A failed card costs 4.0 (worst case), so every stage degrades instead of raising: engine ->
 simple Gaussian-walk fallback -> still writes valid files. Output files are mode 0644, dirs 0755
-(the output checker reads them as another user). Text in /input/text is NOT read in this version.
+(the output checker reads them as another user). The text dir is only searched for BLS macro releases (numbers), never for judgement.
 """
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ def _find_card(panels_dir: pathlib.Path, explicit: pathlib.Path | None) -> pathl
     raise SystemExit(f"card.toml not found near {panels_dir}; pass --card")
 
 
-def _rationale(unit_id, asof, assets, horizons, family, n_draws, samples, res, note) -> str:
+def _rationale(unit_id, asof, assets, horizons, family, n_draws, samples, res, note, ledger=None) -> str:
     m = res.meta
     rows = []
     for ai, a in enumerate(assets):
@@ -66,6 +66,9 @@ def _rationale(unit_id, asof, assets, horizons, family, n_draws, samples, res, n
             rows.append(f"| {a} | {h} | {m.get('last', {}).get(a, float('nan')):.5g} | "
                         f"{q[0]:.5g} | {q[1]:.5g} | {q[2]:.5g} |")
     body = "\n".join(rows)
+    text_part = ("Only numbers: the corpus was searched for BLS releases newer than the lagging panel; values read from them "
+                 "(no judgement, no model):\n" + "\n".join(ledger)) if ledger else \
+                "Nothing: no document was read for judgement; every adjustment above is statistical."
     if m.get("fallback"):
         method = ("Fallback Gaussian random walk from the supplied history only (the main engine could not "
                   f"run: {note}).")
@@ -90,7 +93,7 @@ card metadata read.
 {body}
 
 ## What the text corpus contributed
-Nothing: this version does not read the text corpus; every adjustment above is statistical.
+{text_part}
 
 ## What would change this
 Different volatility in the trailing window, or any document-based evidence (not used here).
@@ -150,6 +153,7 @@ def main(argv=None) -> int:
     hist: dict = {}
     res = None
     panel_steps = None
+    text_ledger: list[str] = []
     try:
         panels = _read_panels(a.panels)
         for asset in assets:
@@ -161,6 +165,9 @@ def main(argv=None) -> int:
             panel_steps = _monthly_inputs(panels, card, card_path, a.asof)
         except (SystemExit, Exception):
             panel_steps = None
+        if panel_steps is not None and all(k in hist for k in assets):
+            from . import releases              # latest BLS print in the corpus that the lagging panel does not have yet
+            hist, panel_steps, text_ledger = releases.apply_fresh({k: hist[k] for k in assets}, panel_steps, assets, a.text, a.asof)
         res = engine.build_draws({k: hist[k] for k in assets}, assets, horizons, target_type, unit_id,
                                  n_draws, family=family, panel_steps=panel_steps,
                                  context_logvol=_context_logvol(panels, assets, a.asof))
@@ -174,7 +181,7 @@ def main(argv=None) -> int:
     if not np.isfinite(samples).all():                    # last safety net before writing
         res = engine.fallback_draws(hist, assets, horizons, target_type, unit_id, n_draws, panel_steps=panel_steps)
         samples = np.nan_to_num(res.samples, nan=0.0, posinf=0.0, neginf=0.0)
-    rat = _rationale(unit_id, a.asof, assets, horizons, family, n_draws, samples, res, note)
+    rat = _rationale(unit_id, a.asof, assets, horizons, family, n_draws, samples, res, note, text_ledger)
     _write(a.out, unit_id, a.asof, assets, horizons, n_draws, samples, target_type, rat)
     print(f"wrote forecast for {unit_id}: {len(assets)}x{len(horizons)} cells, {n_draws} draws"
           + (" [FALLBACK]" if res.meta.get("fallback") else ""))
